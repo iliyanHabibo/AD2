@@ -2,6 +2,7 @@
 import sys
 import socket as s
 import struct
+import pickle
 
 #zona para classes
 
@@ -54,11 +55,16 @@ def create_tcp_client_socket(address, port):
     PORT = int(port)
 
     sock = s.socket(s.AF_INET, s.SOCK_STREAM)
-    sock.connect((HOST, PORT))
+    try:
+        sock.connect((HOST, PORT))
+    except Exception as e:
+        print(f"Error connecting to server: {e}")
+        sys.exit(1)
 
     return sock
 
-def receive_all(socket, length):
+
+def receive_all(socket, size):
     """
     Função que recebe uma quantidade de dados específica de uma socket.
 
@@ -72,16 +78,13 @@ def receive_all(socket, length):
     Excepções:
     socket.error - se ocorrer algum erro na recepção dos dados
     """
-    data = b''
-    remaining = length
-    while remaining > 0:
-        chunk = socket.recv(remaining)
-        if not chunk:
-            raise socket.error("Socket closed before receiving all data")
-        data += chunk
-        remaining -= len(chunk)
+    #recebe um int (o tamanho do int e de 4 bytes) com o tamanho da mensagem
+    #depois recebe a mensagem usando o recv com o argumento size que é o tamanho da mensagem
+    size_bytes = socket.recv(4)
+    size = struct.unpack('i',size_bytes)[0]
+    msg_bytes = socket.recv(size)
+    msg = pickle.loads(msg_bytes)
   
-    # Unpack the received data using the appropriate format string
-    fmt = f"{length}s"
-    unpacked_data = struct.unpack(fmt, data)
-    return unpacked_data[0].decode()
+    return msg
+    
+

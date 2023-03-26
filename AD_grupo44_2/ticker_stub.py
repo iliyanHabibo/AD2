@@ -6,10 +6,8 @@ Números de aluno: 58654, 58626
 """
 
 #zona para fazer imports
-import net_client
+import net_client as nc
 import time
-
-
 
 
 class ListStub:
@@ -22,13 +20,14 @@ class ListStub:
         #criar lista de argumentos a enviar
         self.args_send = []
 
-        #criar um objeto net_client
-        self.net_client = net_client (address, port)
+        #criar objeto net_client
+        self.net_client = nc.server_connection(self.address, self.port)
         
     def connect(self):
-        # código para estabelecer uma ligação,
+        # código para estabelecer uma ligação ao servidor
         # i.e., tornando self.conn_sock válida
-        self.conn_sock = net_client.create_tcp_client_socket(self.address, self.port)
+        self.conn_sock = self.net_client.connect()
+        return self.conn_sock
 
     def disconnect(self):
     # Fecha a ligação conn_sock
@@ -36,7 +35,7 @@ class ListStub:
     
     def send_receive(self):
         # Envia a lista para o servidor
-        return net_client.send_receive(self.conn_sock, self.args_send)
+        return self.net_client.send_receive(self.args_send)
 
     def process_command(self, command):
         # Processa o comando enviado pelo cliente
@@ -57,13 +56,26 @@ class ListStub:
             
             self.args_send = [10,int(command[1]),int(command[2]),self.client_id]
 
-        if command[0] in ['CANCEL', 'STATUS', 'INFOS', 'STATIS'] and len(command) < 2:
+        #argumentos a menos
+        if command[0] in ['CANCEL', 'STATUS', 'INFOS',"STATIS"] and len(command) < 2:
             return "MISSING-ARGUMENTS"
                 
-               
-        if command[0] == 'STATIS' and command[1] == 'L' and len (command) < 3:
+        #argumentos a mais
+        if command[0] in ['CANCEL', 'STATUS', 'INFOS'] and len(command) > 2:
+            return "INVALID-ARGUMENTS"
+        
+        #argumentos a menos
+        if command[0] == 'STATIS' and command[1]=="L" and len (command) < 3:
             return "MISSING-ARGUMENTS"
 
+        #argumentos a mais
+        if command[0] == 'STATIS' and command[1] == "L" and len (command) > 3:
+            return "INVALID-ARGUMENTS"
+        
+        #argumentos a mais
+        if command[0] == 'STATIS' and command[1] == "ALL" and len (command) > 2:
+            return "INVALID-ARGUMENTS"
+        
         #colocar ifs para cada comando e construir a lista a enviar
         if command[0] == "CANCEL":
             self.args_send = [20, int(command[1]), self.client_id]
@@ -76,11 +88,12 @@ class ListStub:
                 self.args_send = [40, self.client_id]
             elif command[1] == "K":
                 self.args_send = [50, self.client_id]
+        
         if command[0] == "STATIS":
             if command[1] == "L":
                 self.args_send = [60, int(command[2])]
             elif command[1] == "ALL":
                 self.args_send = [70]
-
-    
-    
+                
+        if command[0] == "SLEEP":
+            time.sleep(int(command[1]))

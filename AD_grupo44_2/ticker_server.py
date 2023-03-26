@@ -12,6 +12,7 @@ import ticker_skel
 import ticker_pool
 import socket
 import select
+import struct
 import pickle
 
 #zona para definir variaveis
@@ -24,20 +25,27 @@ K = int(sys.argv[4])
 #numero maximo de subscritores por recurso
 N = int(sys.argv[5])
 
+# dicionario cuja chave é o id do recurso e o valor é o objeto resource
+resource_object = {}
+# dicionario cuja chave é o id do recurso e o valor é a lista de clientes que subscreveram
+resource_client_list = {}
+# dicionario cuja chave é o par (id do recurso, id do cliente) e o valor é o tempo limite
+resource_time_limit = {}
+
 
 
 #criar um objeto resource pool
-recursos_objeto = ticker_pool.resource_pool(N,K,M)
+recursos_objeto = ticker_pool.resource_pool(M,K,N,resource_object,resource_client_list,resource_time_limit)
 
 #criar um objeto skeleton
-skeleton_object = ticker_skel.ListSkeleton(recursos_objeto,M,K,N)
+skeleton_object = ticker_skel.ListSkeleton(recursos_objeto,resource_client_list,resource_time_limit,M,K,N)
 
 #criar socket TCP
 listen_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
 listen_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
-listen_socket.bind(('127.0.0.1', 8080))
+listen_socket.bind((HOST, PORT))
 
 #começa a escutar conexoes de clientes
 listen_socket.listen()
@@ -56,16 +64,24 @@ while True:
             print("Novo cliente com o endereço {}".format(addr))
         else:
             #tratar a mensagem recebida do cliente
-            data = sckt.recv(1024)
-            if data:
-                skeleton_object.clean_expired_subs()
-                resposta = skeleton_object.processMessage(data)
-                sckt.sendall(pickle.dumps(resposta))
+            data_size = sckt.recv(4) 
+            data_size = struct.unpack ('i',data_size)[0]
+            msg_bytes = sckt.recv(data_size)
+            msg = pickle.loads(msg_bytes)
+            if msg:
+                skeleton_object.clear_expired_subs()
+                resposta = skeleton_object.processMessage(msg)
+                resposta_bytes = pickle.dumps(resposta,-1)
+                #mandar o tamanho da resposta ao cliente
+                size_resposta_bytes = struct.pack('i', len(resposta_bytes))
+                sckt.sendall(size_resposta_bytes)
+                sckt.sendall(resposta_bytes)
             else:
                 # fechar o socket se nao receber dados
                 sckt.close()
                 socket_list.remove(sckt)
                 print("Cliente desconectado")
+
 
 
 

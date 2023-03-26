@@ -9,7 +9,7 @@ Números de aluno: 58654, 58626
 import socket
 import socket_utils
 import struct
-
+import pickle
 
 
 # definição da classe server_connection 
@@ -40,18 +40,18 @@ class server_connection:
         a resposta recebida pela mesma socket.
         """
         # Pack the list as a binary data string using struct.pack
-        data_str = struct.pack(f"{len(data)}i", *data)
+        data_bytes = pickle.dumps(data)
+
+        #mandar tamanho de data_bytes para o servidor 
+        self.sock.sendall(struct.pack("i", len(data_bytes)))
 
         # Send the packed data to the socket
-        self.sock.sendall(data_str)
+        self.sock.sendall(data_bytes)
 
         # Receive the response from the socket
-        response_str = socket_utils.receive_all(self.sock, len(data_str))
+        resposta = socket_utils.receive_all(self.sock, len(data))
 
-        # Unpack the received data using struct.unpack
-        response = list(struct.unpack(f"{len(data)}i", response_str))
-
-        return response
+        return resposta
 
     
     def close(self):

@@ -64,13 +64,13 @@ class resource:
 ###############################################################################
 
 class resource_pool:
-    def __init__(self, N, K, M,resource_object, resource_client_list, resource_time_limit):
-        # N - numero max de subscritores por recurso
-        self.N = N
-        # K - numero max de recursos por cliente
-        self.K = K
-        # M - numero max de recursos
+    def __init__(self, M, K, N,resource_object, resource_client_list, resource_time_limit):
+         #numero maximo de recursos
         self.M = M
+        #numero maximo de recursos por cliente
+        self.K = K
+        #numero maximo de subscritores por recurso
+        self.N = N
 
         self.resource_client_list = resource_client_list
         self.resource_time_limit = resource_time_limit
@@ -81,7 +81,7 @@ class resource_pool:
         #criar recursos e adicionar ao dicionario resource_object
         #recursos vao de 0 a M-1
         for i in range(0, M):
-            self.resource_object[i] = resource(i)   
+            self.resource_object[i] = resource(i,self.resource_client_list, self.resource_time_limit)   
 
         #criar listas de clientes vazias para o numero de recursos M e colocar no dicionario resource_client_list
         for i in range(0, M):
@@ -90,8 +90,6 @@ class resource_pool:
     def clear_expired_subs(self):
         # usar unsubscribe da classe resource para remover os clientes que expiraram
         time_limit = int(time.time())
-        #print (time_limit)
-        #print (resource_time_limit[(resource_id, client_id)])
         # percorrer o dicionario resource_time_limit e dar unsubscribe nos clientes que expiraram
         if len(self.resource_time_limit) > 0: 
             for resource_id, client_id in self.resource_time_limit.copy().keys():
@@ -118,16 +116,26 @@ class resource_pool:
         elif option == "K":
             return self.K - len(lista_subscritos)
 
+    def list_statis_all(self):
+        output = []
+        for resource_id in self.resource_client_list.keys():
+            if len(self.resource_client_list[resource_id]) > 0:
+                output.append([self.resource_client_list[resource_id]])
+            elif len(self.resource_client_list[resource_id]) == 0:
+                output.append([None])
+        return output
+    
     def statis(self, option, resource_id = None):
         if option == "L":
-            return len(self.resource_client_list[resource_id])
+            return [len(self.resource_client_list[resource_id])]
         elif option == "ALL":
-            return repr(self)
+            return self.list_statis_all()
+        
         
     def __repr__(self):
-        output = ""
+        output = []
         for resource_id in self.resource_object.keys():
-            output += repr(self.resource_object[resource_id]) + "\n"
+            output += repr(self.resource_object[resource_id])
         return output
         
 
